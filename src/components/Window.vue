@@ -1,11 +1,11 @@
 <template>
-  <div class="window">
+  <div class="window" :style="window">
     <div class="toolbar" :style="toolbar">
       <circle-button class="circle" color="#FF5D56"></circle-button>
       <circle-button class="circle" color="#FFBD35"></circle-button>
       <circle-button class="circle" color="#00D14D"></circle-button>
     </div>
-    <vue-perfect-scrollbar class="scroll-area" @ps-scroll-y="scrollHanle">
+    <vue-perfect-scrollbar class="scroll-area" :style="scrollArea" @ps-scroll-y="scrollHanle">
       <slot></slot>
     </vue-perfect-scrollbar>
   </div>
@@ -24,11 +24,14 @@ export default {
     background: { type: String, default: '#1E1F29' }
   },
   computed: {
-    scrollarea () {
-      return { height: `${this.height}px`, width: `${this.width}` }
+    scrollArea () {
+      return { height: `${this.height}px` }
     },
     toolbar () {
       return { background: this.background }
+    },
+    window () {
+      return { width: `${this.width}px` }
     }
   },
   methods: {
@@ -43,7 +46,6 @@ export default {
 .scroll-area
   position: relative
   margin: auto
-  height: 300px
   padding-left 8px
   background-color: #1E1F29
 
