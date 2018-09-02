@@ -13,7 +13,7 @@ storiesOf(Terminal.name, module)
               </div>
               `,
     data: () => ({
-      path: '/home/jacob/whatever',
+      path: '/home/jacob',
       user: 'jacob',
       style: {
         display: 'flex',

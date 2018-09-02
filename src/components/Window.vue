@@ -36,7 +36,6 @@ export default {
   },
   methods: {
     scrollHanle () {
-      console.log('sakdfljsdlfjk')
     }
   }
 }

@@ -8,7 +8,7 @@
         <span class="ps1">{{ ps1 }}</span>
         <div class="input">
           <span class="arrow">➜ </span>
-          <textarea title="" rows="1" @keypress="keypress" autofocus/>
+          <textarea title="input" rows="1" @keydown="keydown" autofocus/>
         </div>
       </div>
     </div>
@@ -16,21 +16,24 @@
 </template>
 
 <script>
+import { Abort, FileSystem, DIR } from '@/_'
 import Window from '@/components/Window'
+import program from '@/commands'
 
-const commands = {
-  ls: (directory, lines) => {
-    lines.push(Object.keys(directory).join(' '))
+const fs = FileSystem.make({
+  home: {
+    jacob: {
+      git: {},
+      Downloads: {},
+      Desktop: {}
+    }
   }
-}
+})
 
-const folders = {
-  git: {},
-  Downloads: {},
-  Desktop: {}
+// eslint-disable-next-line
+Array.prototype.last = function () {
+  return this[this.length - 1]
 }
-
-const lines = Array(26).fill(0).map((i, j) => `THIS is LINE: ${i}:${j}`)
 
 export default {
   name: 'Terminal',
@@ -41,19 +44,39 @@ export default {
     path: { type: String, required: true },
     user: { type: String, required: true }
   },
-  data: () => ({ lines }),
+  data () {
+    return {
+      lines: [],
+      fs: fs.travel(this.path),
+      commands: null,
+      filter: ''
+    }
+  },
   computed: {
     container () {
       return this.$refs.container
     },
     ps1 () {
-      return `${this.user}@${this.path}`
+      return `${this.user}@${this.fs.path()}`
+    },
+    children () {
+      return Object.values(this.fs.children)
+    },
+    directories () {
+      return this.children.filter(c => c.type === DIR)
+    },
+    options () {
+      return this.directories.filter(d => d.name.startsWith(this.filter))
     }
   },
   methods: {
-    keypress (e) {
-      if (e.which !== 13) return // enter
-      e.preventDefault()
+    keydown (e) {
+      const allowed = [13, 9]
+      if (allowed.includes(e.which)) e.preventDefault()
+      if (e.which === 13) this.enter(e)
+      else if (e.which === 9) this.tab(e)
+    },
+    enter (e) {
       let text = e.target.value
       e.target.value = ''
 
@@ -63,14 +86,39 @@ export default {
 
       text = text.split(' ').filter(s => s)
       let [ command, ...args ] = text
-      if (!(command in commands)) {
+      if (!(command in this.commands)) {
         this.lines.push(`command not found: ${command}`)
-        console.log(this.lines.length)
         return
       }
 
-      command = commands[command]
-      command(folders, this.lines, ...args)
+      command = this.commands[command]
+
+      try {
+        command(args)
+      } catch (e) {
+        if (!(e instanceof Abort)) throw e
+      }
+    },
+    tab (e) {
+      let start = e.target.selectionStart - 1
+      const text = e.target.value
+      if (!(text[start].match(/\S/))) return
+
+      const end = start + 1
+      while (text[start].match(/\S/)) {
+        start--
+        if (start === -1) break
+      }
+      start++
+
+      this.filter = text.substring(start, end)
+
+      if (this.options.length === 1) {
+        console.log(text.substring(0, start))
+        console.log(this.options[0].name)
+        console.log(text.substring(end, text.length))
+        e.target.value = text.substr(0, start) + this.options[0].name + text.substr(end, text.length)
+      }
     }
   },
   watch: {
@@ -90,6 +138,9 @@ export default {
         })
       }
     }
+  },
+  mounted () {
+    this.commands = program(this, this.fs, this.lines)
   }
 }
 </script>
@@ -136,6 +187,7 @@ textarea
   outline none
   text-format()
   padding 0
+  resize none
 
 .ps1, .arrow
   white-space pre
@@ -144,7 +196,7 @@ textarea
   display block
 
 .input-area
-  padding 10px 0
+  padding 15px 0
   text-align: left
 
 .input

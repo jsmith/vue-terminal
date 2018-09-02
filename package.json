@@ -10,6 +10,7 @@
     "build:storybook": "vue-cli-service build:storybook -c config/storybook"
   },
   "dependencies": {
+    "argparse": "git+https://github.com/jacsmith21/argparse.git",
     "vue": "^2.5.17",
     "vue-perfect-scrollbar": "^0.1.0"
   },
