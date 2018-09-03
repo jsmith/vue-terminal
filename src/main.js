@@ -1,8 +1,5 @@
 import Vue from 'vue'
-import App from './App.vue'
+import Terminal from '@/components/Terminal'
 
-Vue.config.productionTip = false
-
-new Vue({
-  render: h => h(App)
-}).$mount('#app')
+Vue.component(Terminal.name, Terminal)
+export default Terminal

@@ -1,6 +1,11 @@
 <template>
   <window>
-    <div class="content">
+    <div class="content" ref="content">
+      <div v-if="showWelcome">
+        <code v-if="welcome">{{ welcome | strip }}</code>
+        <code v-if="welcome">{{ ' ' }}</code>
+        <code>Type <strong>help</strong> to list the available commands</code>
+      </div>
       <div class="terminal" ref="container">
         <code v-for="(line, index) in lines" :key="index">{{ line }}</code>
       </div>
@@ -8,32 +13,19 @@
         <span class="ps1">{{ ps1 }}</span>
         <div class="input">
           <span class="arrow">➜ </span>
-          <textarea title="input" rows="1" @keydown="keydown" autofocus/>
+          <textarea title="input" rows="1" spellcheck="false" v-model="text" @keydown="keydown" @keydown.ctrl.67="pushLines" autofocus/>
         </div>
+        <code v-if="help">{{ help }}</code>
       </div>
     </div>
   </window>
 </template>
 
 <script>
-import { Abort, FileSystem, DIR } from '@/_'
+import path from 'path'
+import { Abort, FileSystem } from '@/_'
 import Window from '@/components/Window'
 import program from '@/commands'
-
-const fs = FileSystem.make({
-  home: {
-    jacob: {
-      git: {},
-      Downloads: {},
-      Desktop: {}
-    }
-  }
-})
-
-// eslint-disable-next-line
-Array.prototype.last = function () {
-  return this[this.length - 1]
-}
 
 export default {
   name: 'Terminal',
@@ -41,106 +33,196 @@ export default {
   props: {
     live: { type: Boolean, default: true },
     height: { type: Number, default: 400 },
-    path: { type: String, required: true },
-    user: { type: String, required: true }
+    defaultPath: { type: String, required: false },
+    user: { type: String, required: true },
+    hostname: { type: String, default: 'computer' },
+    welcome: String,
+    commands: { type: Object, default: () => ({}) },
+    fileSystem: { type: Object, required: true }
   },
   data () {
     return {
       lines: [],
-      fs: fs.travel(this.path),
-      commands: null,
-      filter: ''
+      fs: FileSystem.make(this.fileSystem),
+      allCommands: null,
+      filter: '',
+      history: [],
+      position: 0,
+      text: '',
+      saved: '',
+      tempHistory: [],
+      help: '',
+      showWelcome: true
     }
   },
   computed: {
     container () {
       return this.$refs.container
     },
+    content () {
+      return this.$refs.content
+    },
     ps1 () {
-      return `${this.user}@${this.fs.path()}`
+      return `${this.user}@${this.hostname}:${this.path}`
+    },
+    tempFs () {
+      try { return this.fs.travel(this.filterDirname, { home: this.homePath }) } catch (e) { return null }
     },
     children () {
-      return Object.values(this.fs.children)
-    },
-    directories () {
-      return this.children.filter(c => c.type === DIR)
+      return this.tempFs ? Object.values(this.tempFs.children) : []
     },
     options () {
-      return this.directories.filter(d => d.name.startsWith(this.filter))
+      return this.children.filter(d => d.name.startsWith(this.filterBasename))
+    },
+    path () {
+      return this.fs.path().replace(this.homePath, '~')
+    },
+    homePath () {
+      return '/' + path.join('home', this.user)
+    },
+    historyIndex () {
+      return this.history.length - 1 - this.position
+    },
+    home () {
+      return this.fs.travel(this.homePath)
+    },
+    bashHistory () {
+      return this.home.travel('.bash_history')
+    },
+    filterBreakpoint () {
+      const end = this.filter.length
+      let start = end - 1
+      while (start >= 0 && this.filter[start] !== '/') start--
+      return start
+    },
+    filterDirname () {
+      return this.filter.substring(0, this.filterBreakpoint) || '.'
+    },
+    filterBasename () {
+      return this.filter.substring(this.filterBreakpoint + 1, this.filter.length)
     }
   },
   methods: {
     keydown (e) {
-      const allowed = [13, 9]
+      const allowed = [13, 9, 38, 40]
       if (allowed.includes(e.which)) e.preventDefault()
       if (e.which === 13) this.enter(e)
       else if (e.which === 9) this.tab(e)
+      else if (e.which === 38) this.previous(e) // up
+      else if (e.which === 40) this.next(e) // down
     },
-    enter (e) {
-      let text = e.target.value
-      e.target.value = ''
-
+    pushLines () {
       this.lines.push(' ')
       this.lines.push(this.ps1)
-      this.lines.push(`➜ ${text}`)
+      this.lines.push(`➜ ${this.text}`)
+      const text = this.text
+      this.position = 0
+      this.text = ''
+      this.saved = ''
+      this.help = ''
+      this.tempHistory = [...this.history]
+      return text
+    },
+    previous () {
+      if (this.position < this.tempHistory.length) {
+        this.position++
+        this.text = this.tempHistory[this.historyIndex + 1]
+      }
+    },
+    next () {
+      if (this.position === 1) {
+        this.text = this.saved
+        this.position--
+      } else if (this.position > 1) {
+        this.text = this.tempHistory[this.historyIndex + 2]
+        this.position--
+      }
+    },
+    enter () {
+      const text = this.pushLines()
+      this.history.push(text)
+      this.runCommand(text)
+    },
+    tab (e) {
+      if (this.text.length === 0) return
 
-      text = text.split(' ').filter(s => s)
-      let [ command, ...args ] = text
-      if (!(command in this.commands)) {
+      let start = e.target.selectionStart - 1
+      const end = start + 1
+      while (start >= 0 && this.text[start].match(/\S/)) start--
+      start++
+
+      this.filter = this.text.substring(start, end)
+
+      console.log(this.tempFs, this.options)
+      if (this.options.length !== 1) {
+        this.help = this.options.map(o => o.displayName()).join(' ')
+        return
+      }
+
+      // noinspection JSPotentiallyInvalidTargetOfIndexedPropertyAccess
+      const replacement = path.join(this.filterDirname, this.options[0].displayName())
+
+      this.help = ''
+      this.text = this.text.substring(0, start) + replacement + this.text.substring(end, this.text.length)
+    },
+    runCommand (text) {
+      if (!text) return
+      const parts = text.split(' ').filter(s => s)
+      let [ command, ...args ] = parts
+      if (!(command in this.allCommands)) {
         this.lines.push(`command not found: ${command}`)
         return
       }
 
-      command = this.commands[command]
-
       try {
-        command(args)
+        this.allCommands[command](args)
       } catch (e) {
         if (!(e instanceof Abort)) throw e
       }
     },
-    tab (e) {
-      let start = e.target.selectionStart - 1
-      const text = e.target.value
-      if (!(text[start].match(/\S/))) return
+    scrollIntoView (el) {
+      this.$nextTick(() => {
+        if (!el || el.children.length === 0) {
+          return
+        }
 
-      const end = start + 1
-      while (text[start].match(/\S/)) {
-        start--
-        if (start === -1) break
-      }
-      start++
-
-      this.filter = text.substring(start, end)
-
-      if (this.options.length === 1) {
-        console.log(text.substring(0, start))
-        console.log(this.options[0].name)
-        console.log(text.substring(end, text.length))
-        e.target.value = text.substr(0, start) + this.options[0].name + text.substr(end, text.length)
-      }
+        const last = el.children[el.children.length - 1]
+        if (last.scrollIntoView) last.scrollIntoView()
+      })
+    }
+  },
+  filters: {
+    strip (text) {
+      return text.trim()
     }
   },
   watch: {
     lines: {
       immediate: true,
       handler () {
-        if (!this.live) {
-          return
-        }
-
-        this.$nextTick(() => {
-          if (!this.container || this.container.children.length === 0) {
-            return
-          }
-
-          this.container.children[this.container.children.length - 1].scrollIntoView()
-        })
+        if (!this.live) return
+        this.scrollIntoView(this.$refs.content)
       }
+    },
+    text () {
+      if (this.position === 0) {
+        this.saved = this.text
+      } else {
+        this.$set(this.tempHistory, this.historyIndex + 1, this.text)
+      }
+    },
+    history () {
+      this.tempHistory = [...this.history]
+      this.bashHistory.append(this.history[this.history.length - 1])
+    },
+    help () {
+      this.scrollIntoView(this.$refs.content)
     }
   },
   mounted () {
-    this.commands = program(this, this.fs, this.lines)
+    this.allCommands = program(this)
+    this.allCommands.source(['~/.bashrc'])
+    this.home.touch('.bash_history', true)
   }
 }
 </script>
@@ -162,6 +244,7 @@ code
   background-color: unset
   color: unset
   box-shadow: unset
+  text-align left
 
 .terminal
   padding: 0 10px 0 0

@@ -4,22 +4,32 @@ import Terminal from '@/components/Terminal.vue'
 import Window from '@/components/Window.vue'
 import CircleButton from '@/components/CircleButton.vue'
 
+const fs = {
+  home: {
+    jacob: {
+      git: {},
+      Downloads: {},
+      Desktop: {},
+      '.bashrc': 'alias ll="ls -l"\ncd ~'
+    }
+  }
+}
+
 storiesOf(Terminal.name, module)
   .add('standard', () => ({
     components: { Terminal },
     template: `
               <div :style="style">
-                <terminal :path="path" :user="user"/>
+                <terminal user="jacob" :file-system="fs"/>
               </div>
               `,
     data: () => ({
-      path: '/home/jacob',
-      user: 'jacob',
       style: {
         display: 'flex',
         justifyContent: 'center',
         marginTop: '30px'
-      }
+      },
+      fs
     })
   }))
 
