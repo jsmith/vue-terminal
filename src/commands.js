@@ -80,10 +80,10 @@ export default (terminal) => {
     alias: args => {
       args = args.join(' ')
       const match = args.match(/(?<key>[^=]+)="(?<value>.*)"/)
-      terminal.commands[match.groups.key] = () => terminal.runCommand(match.groups.value)
+      terminal.allCommands[match.groups.key] = () => terminal.runCommand(match.groups.value)
     },
     help: () => {
-      write(Object.keys(terminal.commands).join(' '))
+      write(Object.keys(terminal.allCommands).join(' '))
     },
     echo: args => {
       write(args.join(' '))

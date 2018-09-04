@@ -2,12 +2,25 @@ import { expect } from 'chai'
 import { shallowMount } from '@vue/test-utils'
 import Terminal from '@/components/Terminal.vue'
 
+const fs = {
+  home: {
+    jacob: {
+      git: {},
+      Downloads: {},
+      Desktop: {},
+      '.bashrc': 'alias ll="ls -l"\ncd ~'
+    }
+  }
+}
+
+const commands = { fake: () => {} }
+
 describe('HelloWorld.vue', () => {
   let terminal
   let wrapper
 
   beforeEach(() => {
-    wrapper = shallowMount(Terminal, { propsData: { user: 'jacob', hostname: 'computer' } })
+    wrapper = shallowMount(Terminal, { propsData: { user: 'jacob', hostname: 'computer', fileSystem: fs, commands } })
     terminal = wrapper.vm
   })
 
@@ -38,5 +51,15 @@ describe('HelloWorld.vue', () => {
     terminal.previous()
     terminal.previous()
     expect(terminal.text).to.equal('one')
+  })
+
+  it('touch not fail without .bashrc', () => {
+    shallowMount(Terminal, { propsData: { user: 'jacob', fileSystem: { home: { jacob: {} } } } })
+  })
+
+  it('should register default, user given commands and aliases', () => {
+    expect(terminal.allCommands).to.have.property('ls')
+    expect(terminal.allCommands).to.have.property('ll')
+    expect(terminal.allCommands).to.have.property('fake')
   })
 })

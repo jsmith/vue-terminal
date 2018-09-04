@@ -44,7 +44,7 @@ export default {
     return {
       lines: [],
       fs: FileSystem.make(this.fileSystem),
-      allCommands: null,
+      allCommands: this.commands,
       filter: '',
       history: [],
       position: 0,
@@ -220,8 +220,8 @@ export default {
     }
   },
   mounted () {
-    this.allCommands = program(this)
-    this.allCommands.source(['~/.bashrc'])
+    this.allCommands = { ...program(this), ...this.allCommands }
+    if (this.home.exists('.bashrc')) this.allCommands.source(['~/.bashrc'])
     this.home.touch('.bash_history', true)
   }
 }

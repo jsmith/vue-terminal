@@ -98,6 +98,9 @@ export class FileSystem {
   displayName () {
     return this.isFile() ? this.name : this.name + '/'
   }
+  exists (item) {
+    return item in this.children
+  }
 }
 
 export const DIR = 'directory'
