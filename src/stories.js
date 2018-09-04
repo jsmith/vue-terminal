@@ -10,7 +10,8 @@ const fs = {
       git: {},
       Downloads: {},
       Desktop: {},
-      '.bashrc': 'alias ll="ls -l"\ncd ~'
+      '.bashrc': 'alias ll="ls -l"\ncd ~',
+      'random.file': 'github.com is great'
     }
   }
 }

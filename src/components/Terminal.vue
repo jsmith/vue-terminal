@@ -7,7 +7,7 @@
         <code>Type <strong>help</strong> to list the available commands</code>
       </div>
       <div class="terminal" ref="container">
-        <code v-for="(line, index) in lines" :key="index">{{ line }}</code>
+        <code v-for="(line, index) in lines" :key="index" v-html="$options.filters.linkify(line)"></code>
       </div>
       <div class="input-area">
         <span class="ps1">{{ ps1 }}</span>
@@ -26,6 +26,7 @@ import path from 'path'
 import { Abort, FileSystem } from '@/_'
 import Window from '@/components/Window'
 import program from '@/commands'
+import linkifyHtml from 'linkifyjs/html'
 
 export default {
   name: 'Terminal',
@@ -52,7 +53,8 @@ export default {
       saved: '',
       tempHistory: [],
       help: '',
-      showWelcome: true
+      showWelcome: true,
+      linkified: 0
     }
   },
   computed: {
@@ -153,7 +155,6 @@ export default {
 
       this.filter = this.text.substring(start, end)
 
-      console.log(this.tempFs, this.options)
       if (this.options.length !== 1) {
         this.help = this.options.map(o => o.displayName()).join(' ')
         return
@@ -194,6 +195,9 @@ export default {
   filters: {
     strip (text) {
       return text.trim()
+    },
+    linkify (text) {
+      return linkifyHtml(text, { defaultProtocol: 'https' })
     }
   },
   watch: {
@@ -245,6 +249,14 @@ code
   color: unset
   box-shadow: unset
   text-align left
+
+  & >>>
+    a
+      color white
+      text-decoration unset
+
+      &:hover
+        text-decoration underline
 
 .terminal
   padding: 0 10px 0 0

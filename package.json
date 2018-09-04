@@ -1,9 +1,13 @@
 {
   "name": "@jsmith21/vue-terminal",
-  "version": "0.1.2",
+  "version": "0.1.6",
   "private": false,
   "main": "./dist/vue-terminal.common.js",
-  "keywords": ["vue", "terminal", "emulator"],
+  "keywords": [
+    "vue",
+    "terminal",
+    "emulator"
+  ],
   "files": [
     "dist/*",
     "src/*",
@@ -16,11 +20,13 @@
     "lint": "vue-cli-service lint",
     "serve:storybook": "vue-cli-service serve:storybook -p 6006 -c config/storybook",
     "build:storybook": "vue-cli-service build:storybook -c config/storybook",
-    "test:unit": "vue-cli-service test:unit"
+    "test:unit": "vue-cli-service test:unit",
+    "packageandupload": "npm run bundle && npm publish"
   },
   "dependencies": {
     "argparse": "jacsmith21/argparse#0c0faed0623e14400021f3ffbd9068d77aa92cc8",
     "figlet": "^1.2.0",
+    "linkifyjs": "^2.1.6",
     "vue": "^2.5.17",
     "vue-perfect-scrollbar": "^0.1.0"
   },

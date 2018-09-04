@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import Vue from 'vue'
 import { shallowMount } from '@vue/test-utils'
 import Terminal from '@/components/Terminal.vue'
 
@@ -61,5 +62,13 @@ describe('HelloWorld.vue', () => {
     expect(terminal.allCommands).to.have.property('ls')
     expect(terminal.allCommands).to.have.property('ll')
     expect(terminal.allCommands).to.have.property('fake')
+  })
+
+  it('should not render link properly', () => {
+    terminal.lines = ['github.com is great!']
+    Vue.nextTick(() => {
+      const code = wrapper.findAll('a')
+      expect(code.length).to.equal(1)
+    })
   })
 })
