@@ -21,7 +21,8 @@
     "serve:storybook": "vue-cli-service serve:storybook -p 6006 -c config/storybook",
     "build:storybook": "vue-cli-service build:storybook -c config/storybook",
     "test:unit": "vue-cli-service test:unit",
-    "packageandupload": "npm run bundle && npm publish"
+    "packageandupload": "npm run bundle && npm publish",
+    "pages": "npm run build:storybook && git add . && git commit -m 'github pages' && git push"
   },
   "dependencies": {
     "argparse": "jacsmith21/argparse#0c0faed0623e14400021f3ffbd9068d77aa92cc8",
