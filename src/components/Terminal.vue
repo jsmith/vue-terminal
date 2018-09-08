@@ -23,7 +23,7 @@
 
 <script>
 import path from 'path'
-import { Abort, FileSystem } from '@/_'
+import { Abort, FileSystem, commonPathPrefix } from '@/_'
 import Window from '@/components/Window'
 import program from '@/commands'
 import linkifyHtml from 'linkifyjs/html'
@@ -155,13 +155,21 @@ export default {
 
       this.filter = this.text.substring(start, end)
 
+      let replacement
       if (this.options.length !== 1) {
-        this.help = this.options.map(o => o.displayName()).join(' ')
-        return
-      }
+        const options = this.options.map(o => o.displayName())
 
-      // noinspection JSPotentiallyInvalidTargetOfIndexedPropertyAccess
-      const replacement = path.join(this.filterDirname, this.options[0].displayName())
+        const commonPrefix = commonPathPrefix(options, path.sep)
+        if (commonPrefix && commonPrefix !== this.filter) {
+          replacement = commonPrefix
+        } else {
+          this.help = options.join(' ')
+          return
+        }
+      } else {
+        // noinspection JSPotentiallyInvalidTargetOfIndexedPropertyAccess
+        replacement = path.join(this.filterDirname, this.options[0].displayName())
+      }
 
       this.help = ''
       this.text = this.text.substring(0, start) + replacement + this.text.substring(end, this.text.length)
@@ -244,7 +252,7 @@ text-format()
 code
   float: left
   clear: both
-  white-space: pre
+  white-space: pre-wrap
   background-color: unset
   color: unset
   box-shadow: unset
@@ -291,7 +299,7 @@ textarea
   display block
 
 .input-area
-  padding 15px 0
+  padding 14.55px 0
   text-align: left
 
 .input

@@ -106,3 +106,16 @@ export class FileSystem {
 export const DIR = 'directory'
 export const FILE = 'file'
 export class Abort {}
+
+export const commonPathPrefix = (paths) => {
+  let prefix = ''
+  for (let i = 0; ;i++) {
+    let c = null
+    for (let j = 0; j < paths.length; j++) {
+      const path = paths[j]
+      if (!c) c = path[i]
+      else if (i >= path.length || path[i] !== c) return prefix
+    }
+    prefix += c
+  }
+}

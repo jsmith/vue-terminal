@@ -9,6 +9,9 @@ const fs = {
     jacob: {
       git: {},
       Downloads: {},
+      Documents: {},
+      folder1: {},
+      folder2: {},
       Desktop: {},
       '.bashrc': 'alias ll="ls -l"\ncd ~',
       'random.file': 'github.com is great'
