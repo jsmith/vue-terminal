@@ -25,7 +25,7 @@
     "pages": "npm run build:storybook && git add . && git commit -m 'github pages' && git push"
   },
   "dependencies": {
-    "argparse": "jacsmith21/argparse#0c0faed0623e14400021f3ffbd9068d77aa92cc8",
+    "argparse": "jsmith21/argparse#0c0faed0623e14400021f3ffbd9068d77aa92cc8",
     "figlet": "^1.2.0",
     "linkifyjs": "^2.1.6",
     "vue": "^2.5.17",
