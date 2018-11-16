@@ -109,13 +109,21 @@ export class Abort {}
 
 export const commonPathPrefix = (paths) => {
   let prefix = ''
-  for (let i = 0; ;i++) {
-    let c = null
+  let length = Math.min(...paths.map(path => path.length))
+  if (length === Infinity) {
+    length = 0
+  }
+
+  for (let i = 0; i < length; i++) {
+    let c
     for (let j = 0; j < paths.length; j++) {
-      const path = paths[j]
-      if (!c) c = path[i]
-      else if (i >= path.length || path[i] !== c) return prefix
+      if (!c) {
+        c = paths[j][i]
+      } else if (c !== paths[j][i]) {
+        return prefix
+      }
     }
     prefix += c
   }
+  return prefix
 }
