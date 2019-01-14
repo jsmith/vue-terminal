@@ -2,7 +2,7 @@
   <window>
     <div class="content" ref="content">
       <div v-if="showWelcome">
-        <code v-if="welcome">{{ welcome | strip }}</code>
+        <code v-if="welcome" v-html="$options.filters.linkify(welcome.trim())"></code>
         <code v-if="welcome">{{ ' ' }}</code>
         <code>Type <strong>help</strong> to list the available commands</code>
       </div>

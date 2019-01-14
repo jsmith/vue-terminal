@@ -24,7 +24,7 @@ storiesOf(Terminal.name, module)
     components: { Terminal },
     template: `
               <div :style="style">
-                <terminal user="jacob" :file-system="fs"/>
+                <terminal user="jacob" :file-system="fs" welcome="This is the welcome text: https://github.com/jsmith"/>
               </div>
               `,
     data: () => ({
