@@ -12,3 +12,11 @@ npm i
 ```
 npm run serve:storybook
 ```
+
+### Publishing
+```
+git commit -m "your message"
+git tag v0.0.0 # replace with your version
+npm run build
+npm publish
+```
