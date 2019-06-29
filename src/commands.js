@@ -79,8 +79,8 @@ export default (terminal) => {
     },
     alias: args => {
       args = args.join(' ')
-      const match = args.match(/(?<key>[^=]+)="(?<value>.*)"/)
-      terminal.allCommands[match.groups.key] = () => terminal.runCommand(match.groups.value)
+      const match = args.match(/([^=]+)="(.*)"/)
+      terminal.allCommands[match[1]] = () => terminal.runCommand(match[2])
     },
     help: () => {
       write(Object.keys(terminal.allCommands).join(' '))
