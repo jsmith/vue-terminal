@@ -20,6 +20,7 @@
     "*.js"
   ],
   "dependencies": {
+    "@vue/composition-api": "^0.3.4",
     "argparse": "jsmith/argparse#0c0faed0623e14400021f3ffbd9068d77aa92cc8",
     "figlet": "^1.2.0",
     "linkifyjs": "^2.1.6",

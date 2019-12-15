@@ -1,4 +1,4 @@
-export const shadeColor = (color, percent) => {
+export const shadeColor = (color: string, percent: number) => {
   const f = parseInt(color.slice(1), 16)
   const t = percent < 0 ? 0 : 255
   const p = percent < 0 ? percent * -1 : percent
@@ -9,14 +9,15 @@ export const shadeColor = (color, percent) => {
 }
 
 export class FileSystem {
-  constructor (name, type, parent, children = {}) {
-    this.name = name
-    this.type = type
-    this.parent = parent
-    this.children = children // for directories
-    this.content = '' // for files
-  }
-  _travel (item, previous) {
+  private content = '';  // ONLY for files
+  constructor(
+    public readonly name: string | null, 
+    private type: 'directory' | 'file',
+    private parent: FileSystem | null, 
+    public children: { [name: string]: FileSystem } = {} // for directories
+  ) {}
+
+  _travel(item: string, previous?: string) {
     if (item === '-') {
       if (previous) {
         return this.travel(previous)
@@ -33,32 +34,36 @@ export class FileSystem {
       return null
     }
   }
-  travel (travelPath, opts = {}) {
+  travel(travelPath: string, opts: { previous?: string, home?: string } = {}) {
     const { previous, home } = opts
     if (travelPath.startsWith('~')) travelPath = home + travelPath.substring(1, travelPath.length)
 
-    let fs = this
+    let fs: FileSystem = this
     if (travelPath.startsWith('/')) fs = FileSystem.toRoot(fs)
     const parts = travelPath.split('/')
     parts.map((item, i) => {
-      fs = fs._travel(item, previous)
-      if (!fs) throw Error(`No such file or directory: ${travelPath}`)
+      const result = fs._travel(item, previous)
+      if (!result) throw Error(`No such file or directory: ${travelPath}`)
+      fs = result;
       if (i !== parts.length - 1 && !fs.isDirectory()) throw new Error(`Not a directory: ${travelPath}`)
     })
     return fs
   }
-  static toRoot (fs) {
+
+  static toRoot(fs: FileSystem) {
     while (fs.parent) fs = fs.parent
     return fs
   }
-  childrenNames () {
+
+  childrenNames() {
     if (this.isDirectory()) return Object.keys(this.children)
     else return null
   }
-  isDirectory () { return this.type === DIR }
-  isFile () { return this.type === FILE }
-  static make (o) {
-    const make = (o, parent) => {
+
+  isDirectory() { return this.type === DIR }
+  isFile() { return this.type === FILE }
+  static make (o: any) {
+    const make = (o: any, parent: FileSystem) => {
       parent.children = {}
       Object.keys(o).map(name => {
         if (o[name].constructor === String) {
@@ -73,32 +78,32 @@ export class FileSystem {
 
     return make(o, new FileSystem(null, DIR, null))
   }
-  path () {
-    let fs = this
+  path() {
+    let fs: FileSystem = this
     const parents = []
     while (fs.name !== null) {
       parents.push(fs.name)
-      fs = fs.parent
+      fs = fs.parent!
     }
     return '/' + parents.reverse().join('/')
   }
-  touch (name, ignoreExists = false) {
+  touch(name: string, ignoreExists = false) {
     if (this.isFile()) throw new Error()
     else if (name in this.children) {
       if (!ignoreExists) throw new Error()
     } else this.children[name] = new FileSystem(name, FILE, this)
   }
-  append (text) {
+  append(text: string) {
     if (!this.isFile()) throw new Error()
     this.content += text + '\n'
   }
-  copy (name) {
+  copy(name: string) {
     return new FileSystem(name || this.name, this.type, this.parent, this.children)
   }
   displayName () {
     return this.isFile() ? this.name : this.name + '/'
   }
-  exists (item) {
+  exists(item: string) {
     return item in this.children
   }
 }
@@ -107,7 +112,7 @@ export const DIR = 'directory'
 export const FILE = 'file'
 export class Abort {}
 
-export const commonPathPrefix = (paths) => {
+export const commonPathPrefix = (paths: string[]) => {
   let prefix = ''
   let length = Math.min(...paths.map(path => path.length))
   if (length === Infinity) {

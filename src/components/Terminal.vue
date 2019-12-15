@@ -1,19 +1,19 @@
 <template>
-  <window>
-    <div class="content" ref="content">
+  <window>;;
+    <div class="c;o;ntent" ref="content">
       <div v-if="showWelcome">
         <code v-if="welcome" v-html="$options.filters.linkify(welcome.trim())"></code>
         <code v-if="welcome">{{ ' ' }}</code>
         <code>Type <strong>help</strong> to list the available commands</code>
       </div>
-      <div class="terminal" ref="container">
+      <div class="terminal">
         <code v-for="(line, index) in lines" :key="index" v-html="$options.filters.linkify(line)"></code>
       </div>
       <div class="input-area">
         <span class="ps1">{{ ps1 }}</span>
         <div class="input">
           <span class="arrow">➜ </span>
-          <textarea title="input" rows="1" spellcheck="false" v-model="text" @keydown="keydown" @keydown.ctrl.67="pushLines" autofocus/>
+          <textarea title="input" rows="1" spellcheck="false" v-model="text" @keydown.exact="keydown" @keydown.ctrl.67="pushLines" autofocus/>
         </div>
         <code v-if="help">{{ help }}</code>
       </div>
@@ -21,14 +21,15 @@
   </window>
 </template>
 
-<script>
-import path from 'path'
+<script lang="ts">
+import p from 'path'
 import { Abort, FileSystem, commonPathPrefix } from '@/_'
-import Window from '@/components/Window'
+import Window from '@/components/Window.vue'
 import program from '@/commands'
 import linkifyHtml from 'linkifyjs/html'
+import { createComponent, onMounted, reactive, computed, watch, ref } from '@vue/composition-api';
 
-export default {
+export default createComponent({
   name: 'Terminal',
   components: { Window },
   props: {
@@ -41,202 +42,223 @@ export default {
     commands: { type: Object, default: () => ({}) },
     fileSystem: { type: Object, required: true }
   },
-  data () {
-    return {
-      lines: [],
-      fs: FileSystem.make(this.fileSystem),
-      allCommands: this.commands,
+  filters: {
+    strip (text: string) {
+      return text.trim()
+    },
+    linkify (text: string) {
+      return linkifyHtml(text, { defaultProtocol: 'https' })
+    },
+  },
+  setup(props, context) {
+    const content = ref<HTMLDivElement>(null);
+    const state = reactive({
+      lines: [] as string[],
+      fs: FileSystem.make(props.fileSystem),
+      allCommands: props.commands,
       filter: '',
-      history: [],
+      history: [] as string[],
       position: 0,
       text: '',
       saved: '',
-      tempHistory: [],
+      tempHistory: [] as string[],
       help: '',
       showWelcome: true,
       linkified: 0
-    }
-  },
-  computed: {
-    container () {
-      return this.$refs.container
-    },
-    content () {
-      return this.$refs.content
-    },
-    ps1 () {
-      return `${this.user}@${this.hostname}:${this.path}`
-    },
-    tempFs () {
-      try { return this.fs.travel(this.filterDirname, { home: this.homePath }) } catch (e) { return null }
-    },
-    children () {
-      return this.tempFs ? Object.values(this.tempFs.children) : []
-    },
-    options () {
-      return this.children.filter(d => d.name.startsWith(this.filterBasename))
-    },
-    path () {
-      return this.fs.path().replace(this.homePath, '~')
-    },
-    homePath () {
-      return '/' + path.join('home', this.user)
-    },
-    historyIndex () {
-      return this.history.length - 1 - this.position
-    },
-    home () {
-      return this.fs.travel(this.homePath)
-    },
-    bashHistory () {
-      return this.home.travel('.bash_history')
-    },
-    filterBreakpoint () {
-      const end = this.filter.length
+    })
+
+    const ps1 = computed(() => {
+      return `${props.user}@${props.hostname}:${path.value}`
+    });
+
+    const tempFs = computed(() => {
+      try { 
+        return state.fs.travel(filterDirname.value, { home: homePath.value })
+      } catch (e) { 
+        return null
+      }
+    });
+
+    const children = computed(() => {
+      return tempFs.value ? Object.values(tempFs.value.children) : []
+    });
+
+    const options = computed(() => {
+      return children.value.filter((d) => {
+        return d.name !== null && d.name.startsWith(filterBasename.value)
+      })
+    });
+
+    const path = computed(() => {
+      return state.fs.path().replace(homePath.value, '~')
+    });
+
+    const homePath = computed(() => {
+      return '/' + p.join('home', props.user)
+    });
+
+    const historyIndex = computed(() => {
+      return state.history.length - 1 - state.position;
+    });
+
+    const home = computed(() => {
+      return state.fs.travel(homePath.value)
+    });
+
+    const bashHistory = computed(() => {
+      return home.value.travel('.bash_history')
+    });
+
+    const filterBreakpoint = computed(() => {
+      const end = state.filter.length
       let start = end - 1
-      while (start >= 0 && this.filter[start] !== '/') start--
+      while (start >= 0 && state.filter[start] !== '/') {
+        start--;
+      }
       return start
-    },
-    filterDirname () {
-      return this.filter.substring(0, this.filterBreakpoint) || '.'
-    },
-    filterBasename () {
-      return this.filter.substring(this.filterBreakpoint + 1, this.filter.length)
-    }
-  },
-  methods: {
-    keydown (e) {
-      const allowed = [13, 9, 38, 40]
-      if (allowed.includes(e.which)) e.preventDefault()
-      if (e.which === 13) this.enter(e)
-      else if (e.which === 9) this.tab(e)
-      else if (e.which === 38) this.previous(e) // up
-      else if (e.which === 40) this.next(e) // down
-    },
-    pushLines () {
-      this.lines.push(' ')
-      this.lines.push(this.ps1)
-      this.lines.push(`➜ ${this.text}`)
-      const text = this.text
-      this.position = 0
-      this.text = ''
-      this.saved = ''
-      this.help = ''
-      this.tempHistory = [...this.history]
-      return text
-    },
-    previous () {
-      if (this.position < this.tempHistory.length) {
-        this.position++
-        this.text = this.tempHistory[this.historyIndex + 1]
-      }
-    },
-    next () {
-      if (this.position === 1) {
-        this.text = this.saved
-        this.position--
-      } else if (this.position > 1) {
-        this.text = this.tempHistory[this.historyIndex + 2]
-        this.position--
-      }
-    },
-    enter () {
-      const text = this.pushLines()
-      this.history.push(text)
-      this.runCommand(text)
-    },
-    tab (e) {
-      if (this.text.length === 0) return
+    });
 
-      let start = e.target.selectionStart - 1
-      const end = start + 1
-      while (start >= 0 && this.text[start].match(/\S/)) start--
-      start++
+    const filterDirname = computed(() => {
+      return state.filter.substring(0, filterBreakpoint.value) || '.'
+    });
 
-      this.filter = this.text.substring(start, end)
+    const filterBasename = computed(() => {
+      return state.filter.substring(filterBreakpoint.value + 1, state.filter.length)
+    });
 
-      let replacement
-      if (this.options.length !== 1) {
-        const options = this.options.map(o => o.displayName())
+    onMounted(() => {
+      state.allCommands = { ...program(this), ...state.allCommands }
+      if (home.value.exists('.bashrc')) state.allCommands.source(['~/.bashrc'])
+      home.value.touch('.bash_history', true)
+    });
 
-        const commonPrefix = commonPathPrefix(options, path.sep)
-        if (commonPrefix && commonPrefix !== this.filter) {
-          replacement = commonPrefix
-        } else {
-          this.help = options.join(' ')
-          return
-        }
+    watch(() => [state.lines, state.help], () => {
+      if (!props.live || !content.value) { return; }
+      scrollIntoView(content.value)
+    })
+
+    watch(() => state.text, () => {
+      if (state.position === 0) {
+        state.saved = state.text
       } else {
-        // noinspection JSPotentiallyInvalidTargetOfIndexedPropertyAccess
-        replacement = path.join(this.filterDirname, this.options[0].displayName())
+        context.root.$set(state.tempHistory, historyIndex.value + 1, state.text)
+      }
+    })
+
+    watch(() => history, () => {
+      state.tempHistory = [...state.history]
+      bashHistory.value.append(state.history[state.history.length - 1])
+    })
+
+    const scrollIntoView = (el: Element) => {
+        context.root.$nextTick(() => {
+          if (!el || el.children.length === 0) {
+            return
+          }
+
+          const last = el.children[el.children.length - 1]
+          if (last.scrollIntoView) last.scrollIntoView()
+        })
       }
 
-      this.help = ''
-      this.text = this.text.substring(0, start) + replacement + this.text.substring(end, this.text.length)
-    },
-    runCommand (text) {
+    const pushLines = () => {
+      state.lines.push(' ')
+      state.lines.push(ps1.value)
+      state.lines.push(`➜ ${state.text}`)
+      const text = state.text
+      state.position = 0
+      state.text = ''
+      state.saved = ''
+      state.help = ''
+      state.tempHistory = [...state.history]
+      return text
+    }
+
+    const previous = () => {
+      if (state.position < state.tempHistory.length) {
+        state.position++
+        state.text = state.tempHistory[historyIndex.value + 1]
+      }
+    }
+
+    const next = () => {
+      if (state.position === 1) {
+        state.text = state.saved
+        state.position--
+      } else if (state.position > 1) {
+        state.text = state.tempHistory[historyIndex.value + 2]
+        state.position--
+      }
+    }
+
+    const enter = () => {
+      const text = pushLines()
+      state.history.push(text)
       if (!text) return
       const parts = text.split(' ').filter(s => s)
       let [ command, ...args ] = parts
-      if (!(command in this.allCommands)) {
-        this.lines.push(`command not found: ${command}`)
+      if (!(command in state.allCommands)) {
+        state.lines.push(`command not found: ${command}`)
         return
       }
 
       try {
-        this.allCommands[command](args)
+        state.allCommands[command](args)
       } catch (e) {
         if (!(e instanceof Abort)) throw e
       }
-    },
-    scrollIntoView (el) {
-      this.$nextTick(() => {
-        if (!el || el.children.length === 0) {
+    }
+
+    const tab = (e: KeyboardEvent) => {
+      if (state.text.length === 0) {
+        return;
+      }
+
+      if (!e.target) {
+        return;
+      }
+
+      let start = (e.target as HTMLTextAreaElement).selectionStart - 1
+      const end = start + 1
+      while (start >= 0 && state.text[start].match(/\S/)) start--
+      start++
+
+      state.filter = state.text.substring(start, end)
+
+      let replacement
+      if (options.value.length !== 1) {
+        const opts = options.value.map(o => o.displayName()!);
+
+        const commonPrefix = commonPathPrefix(opts)
+        if (commonPrefix && commonPrefix !== state.filter) {
+          replacement = commonPrefix
+        } else {
+          state.help = opts.join(' ')
           return
         }
-
-        const last = el.children[el.children.length - 1]
-        if (last.scrollIntoView) last.scrollIntoView()
-      })
-    }
-  },
-  filters: {
-    strip (text) {
-      return text.trim()
-    },
-    linkify (text) {
-      return linkifyHtml(text, { defaultProtocol: 'https' })
-    }
-  },
-  watch: {
-    lines: {
-      immediate: true,
-      handler () {
-        if (!this.live) return
-        this.scrollIntoView(this.$refs.content)
-      }
-    },
-    text () {
-      if (this.position === 0) {
-        this.saved = this.text
       } else {
-        this.$set(this.tempHistory, this.historyIndex + 1, this.text)
+        // noinspection JSPotentiallyInvalidTargetOfIndexedPropertyAccess
+        replacement = p.join(filterDirname.value, options.value[0].displayName()!)
       }
-    },
-    history () {
-      this.tempHistory = [...this.history]
-      this.bashHistory.append(this.history[this.history.length - 1])
-    },
-    help () {
-      this.scrollIntoView(this.$refs.content)
+
+      state.help = ''
+      state.text = state.text.substring(0, start) + replacement + state.text.substring(end, state.text.length)
     }
-  },
-  mounted () {
-    this.allCommands = { ...program(this), ...this.allCommands }
-    if (this.home.exists('.bashrc')) this.allCommands.source(['~/.bashrc'])
-    this.home.touch('.bash_history', true)
+
+    return {
+      keydown (e: KeyboardEvent) {
+        const allowed = [13, 9, 38, 40]
+        if (allowed.includes(e.which)) e.preventDefault()
+        if (e.which === 13) enter()
+        else if (e.which === 9) tab(e)
+        else if (e.which === 38) previous() // up
+        else if (e.which === 40) next() // down
+      },
+      pushLines,
+      content,
+    }
   }
-}
+});
 </script>
 
 <style scoped lang="stylus">

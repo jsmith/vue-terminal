@@ -1,31 +1,42 @@
 <template>
-  <div class="base" :style="circle" @mouseenter="lighten = true" @mouseleave="lighten = false"></div>
+  <div class="base" :style="circle" @mouseenter="enter" @mouseleave="leave"></div>
 </template>
 
-<script>
+<script lang="ts">
+import { createComponent, computed, ref } from '@vue/composition-api';
 import { shadeColor } from '@/_'
 
-export default {
+export default createComponent({
   name: 'CircleButton',
   props: {
-    color: String,
-    radius: { type: Number, default: 5 }
+    color: { type: String, required: true },
+    radius: { type: Number, default: 5 },
   },
-  data: () => ({ lighten: false }),
-  computed: {
-    circle () {
-      return {
-        background: this.lighten ? shadeColor(this.color, 0.4) : this.color,
-        width: `${this.diameter}px`,
-        height: `${this.diameter}px`
-      }
-    },
-    diameter () { return this.radius * 2 }
+  setup(props) {
+    const lighten = ref(false);
+    const diameter = computed(() => props.radius * 2);
+
+    return {
+      circle: computed(() => {
+        return {
+          background: lighten.value ? shadeColor(props.color, 0.4) : props.color,
+          width: `${diameter.value}px`,
+          height: `${diameter.value}px`,
+        }
+      }),
+      leave() {
+        lighten.value = false;
+      },
+      enter() {
+        lighten.value = true;
+      },
+    }
   }
-}
+});
 </script>
 
-<style scoped lang="stylus">
-.base
+<style scoped>
+.base {
   border-radius: 50%
+}
 </style>

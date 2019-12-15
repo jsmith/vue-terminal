@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import Terminal from '@/components/Terminal'
+import Terminal from '@/components/Terminal.vue'
 
-Vue.component(Terminal.name, Terminal)
+Vue.component('Terminal', Terminal)
 export default Terminal

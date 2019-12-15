@@ -11,11 +11,12 @@
   </div>
 </template>
 
-<script>
-import CircleButton from '@/components/CircleButton'
+<script lang="ts">
+import CircleButton from '@/components/CircleButton.vue'
 import VuePerfectScrollbar from 'vue-perfect-scrollbar'
+import { createComponent, computed } from '@vue/composition-api';
 
-export default {
+export default createComponent({
   name: 'Window',
   components: { CircleButton, VuePerfectScrollbar },
   props: {
@@ -23,22 +24,27 @@ export default {
     width: { type: Number, default: 800 },
     background: { type: String, default: '#1E1F29' }
   },
-  computed: {
-    scrollArea () {
-      return { height: `${this.height}px` }
-    },
-    toolbar () {
-      return { background: this.background }
-    },
-    window () {
-      return { width: `${this.width}px` }
-    }
-  },
-  methods: {
-    scrollHanle () {
+  setup(props) {
+    const scrollArea = computed(() => {
+      return { height: `${props.height}px` }
+    });
+
+    const toolbar = computed(() => {
+      return { background: props.background }
+    });
+
+    const window = computed(() => {
+      return { width: `${props.width}px` }
+    });
+
+    return {
+      scrollHanle () {},
+      scrollArea,
+      toolbar,
+      window,
     }
   }
-}
+});
 </script>
 
 <style scoped lang="stylus">
