@@ -21,3 +21,14 @@ declare module 'path' {
 
   export default path;
 }
+
+declare module 'argparse' {
+  const ex: {
+    ArgumentParser: (opts: any) => {
+      addArgument(name: string, opts?: any): void,
+      parseArgs(args: string[]): any;
+    },
+  }
+
+  export default ex;
+}

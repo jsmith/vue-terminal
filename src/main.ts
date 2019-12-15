@@ -1,5 +1,9 @@
-import Vue from 'vue'
-import Terminal from '@/components/Terminal.vue'
+import VueCompositionApi from '@vue/composition-api';
+import Terminal from '@/components/Terminal.vue';
 
-Vue.component('Terminal', Terminal)
-export default Terminal
+export default {
+  install(vue: any) {
+    vue.use(VueCompositionApi);
+    vue.component(Terminal.name, Terminal);
+  },
+};

@@ -4,7 +4,7 @@
 
 <script lang="ts">
 import { createComponent, computed, ref } from '@vue/composition-api';
-import { shadeColor } from '@/_'
+import { shadeColor } from '@/_';
 
 export default createComponent({
   name: 'CircleButton',
@@ -30,8 +30,8 @@ export default createComponent({
       enter() {
         lighten.value = true;
       },
-    }
-  }
+    };
+  },
 });
 </script>
 
