@@ -2,28 +2,23 @@
   "name": "@jsmith21/vue-terminal",
   "version": "1.1.2",
   "private": false,
+  "scripts": {
+    "build": "vue-cli-service build",
+    "test:unit": "vue-cli-service test:unit",
+    "lint": "vue-cli-service lint",
+    "build:storybook": "vue-cli-service build:storybook -c config/storybook",
+    "bundle": "vue-cli-service build --target lib --name vue-terminal ./src/main.js",
+    "packageandupload": "npm run bundle && npm publish",
+    "pages": "npm run build:storybook && git add . && git commit -m 'github pages' && git push",
+    "serve:storybook": "vue-cli-service serve:storybook -p 6006 -c config/storybook"
+  },
   "main": "./dist/vue-terminal.common.js",
-  "keywords": [
-    "vue",
-    "terminal",
-    "emulator"
-  ],
   "files": [
     "dist/*",
     "src/*",
     "*.json",
     "*.js"
   ],
-  "scripts": {
-    "build": "vue-cli-service build",
-    "bundle": "vue-cli-service build --target lib --name vue-terminal ./src/main.js",
-    "lint": "vue-cli-service lint",
-    "serve:storybook": "vue-cli-service serve:storybook -p 6006 -c config/storybook",
-    "build:storybook": "vue-cli-service build:storybook -c config/storybook",
-    "test:unit": "vue-cli-service test:unit",
-    "packageandupload": "npm run bundle && npm publish",
-    "pages": "npm run build:storybook && git add . && git commit -m 'github pages' && git push"
-  },
   "dependencies": {
     "argparse": "jsmith/argparse#0c0faed0623e14400021f3ffbd9068d77aa92cc8",
     "figlet": "^1.2.0",
@@ -34,16 +29,26 @@
   "devDependencies": {
     "@storybook/addon-actions": "^4.0.0-alpha.16",
     "@storybook/addon-links": "^4.0.0-alpha.16",
+    "@types/chai": "^4.1.0",
+    "@types/mocha": "^5.2.4",
     "@vue/cli-plugin-babel": "^3.8.0",
     "@vue/cli-plugin-eslint": "^3.8.0",
+    "@vue/cli-plugin-typescript": "^4.1.1",
     "@vue/cli-plugin-unit-mocha": "^3.8.0",
     "@vue/cli-service": "^3.8.4",
     "@vue/eslint-config-standard": "^3.0.1",
+    "@vue/eslint-config-typescript": "^4.0.0",
     "@vue/test-utils": "^1.0.0-beta.20",
     "chai": "^4.1.2",
     "stylus": "^0.54.5",
     "stylus-loader": "^3.0.2",
+    "typescript": "~3.5.3",
     "vue-cli-plugin-storybook": "0.4.3",
     "vue-template-compiler": "^2.5.17"
-  }
+  },
+  "keywords": [
+    "vue",
+    "terminal",
+    "emulator"
+  ]
 }
