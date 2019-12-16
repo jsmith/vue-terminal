@@ -5,13 +5,13 @@ import { Ref } from '@vue/composition-api';
 type Command = () => void;
 
 interface Options {
-  lines: string[];
+  lines: Ref<string[]>;
   homePath: Ref<string>;
   user: Ref<string>;
   fs: Ref<FileSystem>;
   path: Ref<string>;
   showWelcome: Ref<boolean>;
-  allCommands: { [k: string]: Command };
+  allCommands: Ref<{ [k: string]: Command }>;
   runCommand: (command: string) => void;
 }
 
@@ -28,12 +28,29 @@ type CreateArg<T extends CommandOptions> =
   unknown;
 type CreateArgs<T extends {  [k: string]: CommandOptions }> = { [K in keyof T]: CreateArg<T[K]> };
 
+// Ok, so a good question is why we have this flag.
+// Currently, our arg parser tries to exist the program using process.exit when it fails to parse.
+// This is fine for most applications but we need to handle this in our web terminal.
+// So, you see below we override process.exit which will be called when the parsing fails (or when --help/-h is used).
+// We set disabled to false at the start of a command and then true when process.exit is called.
+// When process.exit is called we need to know to start writing to the terminal (as the parser will continue as it did.
+// not actually exit as it expected to when it called process.exit) and to not run the command (again, the parser did
+// not stop when it expected to stop when it called process.exit).
+let disabled = true;
+const createWrite = (lines: Ref<string[]>) => (str: string) => {
+  if (!disabled) {
+    str.split('\n').map((s) => lines.value.push(s));
+  }
+};
+
+// This is just a helper function with some nice typing :)
 const createCommand = <T extends { [k: string]: CommandOptions}>(
+  name: string,
   argumentDefinitions: T,
   callback: (args: CreateArgs<T>) => void,
   opts?: { stream: { write: (str: string) => void } },
 ) => {
-  const command = argparse.ArgumentParser(opts);
+  const command = argparse.ArgumentParser({ ...opts, addHelp: true, prog: name });
   Object.entries(argumentDefinitions).forEach(([argName, argDefinition]) => {
     if (argDefinition.type === 'flag') {
       command.addArgument(`-${argName}`, { action: 'storeTrue' });
@@ -47,24 +64,25 @@ const createCommand = <T extends { [k: string]: CommandOptions}>(
   });
 
   return (argString: string[]) => {
+    disabled = false;
     const args = command.parseArgs(argString);
-    callback(args);
+    if (!disabled) {
+      callback(args);
+    }
   };
 };
 
 export default (terminal: Options) => {
-  const write = (str: string) => {
-    str.split('\n').map((s) => terminal.lines.push(s));
-  };
-
+  const write = createWrite(terminal.lines);
   const stdout = { write };
   const exit = () => {
-    // empty
+    disabled = true;
   };
 
-  (process as any).exit = (process as any).exit || exit;
+  (process as any).exit = exit;
 
   const ls = createCommand(
+    'ls',
     {
       dir: { type: '?', default: '.' },
       l: { type: 'flag' },
@@ -88,6 +106,7 @@ export default (terminal: Options) => {
 
   let previous: string | undefined;
   const cd = createCommand(
+    'cd',
     { dir: { type: '?', default: '~' } },
     (args) => {
       if (args.dir === '-' && previous) {
@@ -103,6 +122,7 @@ export default (terminal: Options) => {
   );
 
   const cat = createCommand(
+    'cat',
     { dirs: { type: '+' } },
     (args) => {
       args.dirs.map((p: string) => {
@@ -114,6 +134,7 @@ export default (terminal: Options) => {
   );
 
   const source = createCommand(
+    'source',
     { dir: { type: '1' } },
     (args) => {
       const fs = travel(args.dir[0], { allowFile: true });
@@ -123,12 +144,10 @@ export default (terminal: Options) => {
 
   const travel = (path: string, { allowFile, allowDirectory }: any) => {
     let fs: FileSystem | undefined;
-    console.log('Travelling to ' + path);
     try {
       fs = terminal.fs.value.travel(path, { previous, home: terminal.homePath.value });
     } catch (e) {
       write(e.message);
-      console.error(e);
       throw new Abort();
     }
 
@@ -155,16 +174,16 @@ export default (terminal: Options) => {
         write('Unable to parse alias command.');
         throw new Abort();
       }
-      terminal.allCommands[match[1]] = () => terminal.runCommand(match[2]);
+      terminal.allCommands.value[match[1]] = () => terminal.runCommand(match[2]);
     },
     help: () => {
-      write(Object.keys(terminal.allCommands).join(' '));
+      write(Object.keys(terminal.allCommands.value).join(' '));
     },
     echo: (args: string[]) => {
       write(args.join(' '));
     },
     clear: () => {
-      terminal.lines = [];
+      terminal.lines.value = [];
       terminal.showWelcome.value = false;
     },
   };

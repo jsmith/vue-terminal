@@ -60,13 +60,14 @@ export default createComponent({
   },
   setup(props, context) {
     const content = ref<HTMLDivElement>(null);
-    const help = ref('');
+    const help = ref(''); // This is the tab completion text
     const text = ref('');
-    const lines: string[] = [];
+    const lines = ref<string[]>([]);
     const showWelcome = ref(true);
+    const allCommands = ref(props.commands);
+
     const state = reactive({
       fs: FileSystem.make(props.fileSystem),
-      allCommands: props.commands,
       filter: '',
       history: [] as string[],
       position: 0,
@@ -138,13 +139,13 @@ export default createComponent({
     const runCommand = (text: string) => {
       const parts = text.split(' ').filter(s => s)
       let [ command, ...args ] = parts
-      if (!(command in state.allCommands)) {
-        lines.push(`command not found: ${command}`)
+      if (!(command in allCommands.value)) {
+        lines.value.push(`command not found: ${command}`)
         return;
       }
 
       try {
-        state.allCommands[command](args)
+        allCommands.value[command](args)
       } catch (e) {
         if (!(e instanceof Abort)) throw e
       }
@@ -157,23 +158,27 @@ export default createComponent({
       fs: computed({ get: () => state.fs, set: (fs) => state.fs = fs }),
       path,
       showWelcome,
-      allCommands: state.allCommands,
+      allCommands: allCommands,
       runCommand,
     });
     
     onMounted(() => {
-      state.allCommands = { 
+      allCommands.value = { 
         ...baseCommands, 
-        ...state.allCommands
+        ...allCommands.value
       };
 
       if (home.value.exists('.bashrc')) { baseCommands.source(['~/.bashrc']); }
     });
 
-    watch(() => [lines, help.value], () => {
+    const checkScroll = () => {
       if (!props.live || !content.value) { return; }
       scrollIntoView(content.value);
-    });
+    }
+
+    // I tried to do these both at once but it didn't work??
+    watch(lines, checkScroll);
+    watch(help, checkScroll);
 
     watch(() => text.value, () => {
       if (state.position === 0) {
@@ -183,7 +188,7 @@ export default createComponent({
       }
     });
 
-    watch(() => history, () => {
+    watch(() => state.history, () => {
       state.tempHistory = [...state.history];
       bashHistory.value.append(state.history[state.history.length - 1]);
     });
@@ -200,14 +205,13 @@ export default createComponent({
       };
 
     const pushAndReset = () => {
-      lines.push(' ');
-      lines.push(ps1.value);
-      lines.push(`➜ ${text.value}`);
+      lines.value.push(' ');
+      lines.value.push(ps1.value);
+      lines.value.push(`➜ ${text.value}`);
       state.position = 0;
       text.value = '';
       state.saved = '';
       help.value = '';
-      state.tempHistory = [...state.history];
     };
 
     const previous = () => {
@@ -228,11 +232,11 @@ export default createComponent({
     };
 
     const enter = () => {
-      runCommand(text.value);
+      const savedText = text.value;
       pushAndReset();
-      state.history.push(text.value);
-      console.log(text.value);
-      if (!text.value) { return; }
+      if (!savedText) { return; }
+      runCommand(savedText);
+      state.history.push(savedText);
     };
 
     const tab = (e: KeyboardEvent) => {
