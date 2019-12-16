@@ -37,6 +37,11 @@ import program from '@/commands';
 import linkifyHtml from 'linkifyjs/html';
 import { createComponent, onMounted, reactive, computed, watch, ref } from '@vue/composition-api';
 
+// Beware, this code is a bit messy
+// If I had time, I would definitely improve this
+// But since it is not really being used in many projects... it is how it is
+// Just wanted to put this disclosure
+
 export default createComponent({
   name: 'Terminal',
   components: { Window },
