@@ -1,17 +1,14 @@
 {
   "name": "@jsmith21/vue-terminal",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "private": false,
   "repository": "https://github.com/jsmith/vue-terminal",
   "license": "MIT",
   "scripts": {
-    "build": "vue-cli-service build",
     "test:unit": "vue-cli-service test:unit",
     "lint": "vue-cli-service lint",
     "build:storybook": "vue-cli-service build:storybook -c config/storybook",
-    "bundle": "vue-cli-service build --target lib --name vue-terminal ./src/components/Terminal.vue",
-    "packageandupload": "npm run bundle && npm publish",
-    "pages": "npm run build:storybook && git add . && git commit -m 'github pages' && git push",
+    "bundle": "vue-cli-service build --target lib --name vue-terminal ./src/main.ts",
     "serve:storybook": "vue-cli-service serve:storybook -p 6006 -c config/storybook"
   },
   "main": "./dist/vue-terminal.common.js",

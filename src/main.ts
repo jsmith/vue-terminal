@@ -6,4 +6,5 @@ export default {
     vue.use(VueCompositionApi);
     vue.component(Terminal.name, Terminal);
   },
+  Terminal,
 };

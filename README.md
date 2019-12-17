@@ -15,8 +15,11 @@ npm run serve:storybook
 
 ### Publishing
 ```
-git commit -m "your message"
-git tag v0.0.0 # replace with your version (make sure to replace in package.json)
-npm run build
+VERSION="YOUR_VERSION"
+npm run bundle
+git add .
+git commit -m "$VERSION"
+git tag v$VERSION
+git push
 npm publish
 ```
