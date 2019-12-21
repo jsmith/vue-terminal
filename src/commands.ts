@@ -93,7 +93,7 @@ export default (terminal: Options) => {
       let text = '';
       if (args.l) {
         Object.values(fs.children).map((child: any) => {
-          text += `drwxr-xr-x  4 ${terminal.user} ${terminal.user}    4096 Jun 27 08:53 ${child.name}\n`;
+          text += `drwxr-xr-x  4 ${terminal.user.value} ${terminal.user.value}    4096 Jun 27 08:53 ${child.name}\n`;
         });
       } else {
         text = fs.childrenNames().join(' ');
