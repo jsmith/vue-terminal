@@ -44,7 +44,8 @@ Then, in your `Vue` template, pass in all of the props:
 ></terminal>
 ```
 
-See [stories.ts](/jsmith/vue-terminal/blob/master/src/stories.ts) for a working example using Storybook!
+
+See [stories.ts](https://github.com/jsmith/vue-terminal/blob/master/src/stories.ts) for a working example using Storybook!
 
 ## Project setup
 ```
